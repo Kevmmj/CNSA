@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📅 수행평가 AI 일정 매니저</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans KR"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md shadow-indigo-200">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">수행평가 AI 플래너</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">맞춤형 준비 로드맵 & D-Day 스케줄러</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleApiKeyModal()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200">
+                    <i class="fa-solid fa-key text-amber-500"></i>
+                    <span id="apiKeyBtnText">API 키 설정</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Side: Registration Form -->
+        <section class="lg:col-span-5 space-y-4">
+            <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-pen-to-square text-indigo-600 mr-2"></i> 수행평가 새 일정 등록
+                    </h2>
+                    <span class="text-xs text-slate-400">* 필수 입력</span>
+                </div>
+
+                <form id="taskForm" onsubmit="handleTaskSubmit(event)" class="space-y-4">
+                    <!-- 과목명 -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">과목명 *</label>
+                        <input type="text" id="subject" required placeholder="예: 통합사회, 수학 I, 영어" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                    </div>
+
+                    <!-- 평가 유형 및 마감일 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">평가 유형 *</label>
+                            <select id="taskType" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition bg-white">
+                                <option value="탐구 보고서">📑 탐구 보고서</option>
+                                <option value="PPT 발표">🎤 PPT 발표</option>
+                                <option value="서술형·논술형">✏️ 서술형·논술형</option>
+                                <option value="실험·실습">🧪 실험·실습</option>
+                                <option value="포트폴리오">📁 포트폴리오</option>
+                                <option value="기타">📌 기타</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">마감일 / 평가일 *</label>
+                            <input type="date" id="deadline" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                        </div>
+                    </div>
+
+                    <!-- 세부 내용 및 주제 -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">세부 주제 및 요구사항</label>
+                        <textarea id="details" rows="3" placeholder="예: 생태계 파괴와 인류 발전의 연계성 탐구 보고서 작성 (분량 A4 2장 이내, 출처 명시)" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none"></textarea>
+                    </div>
+
+                    <!-- 제출 버튼 -->
+                    <button type="submit" id="submitBtn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-indigo-200 flex items-center justify-center space-x-2 transition cursor-pointer">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>AI 로드맵 생성 및 저장</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- API Key Status Quick Alert -->
+            <div id="apiKeyAlert" class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start space-x-3 text-xs text-amber-800">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-base mt-0.5"></i>
+                <div class="flex-1">
+                    <span class="font-bold">Gemini API 키가 아직 설정되지 않았습니다!</span>
+                    <p class="text-amber-700/80 mt-0.5">일정 저장은 가능하지만 AI 맞춤 준비 계획을 생성하려면 우측 상단 'API 키 설정'에서 키를 입력해주세요.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Side: Dashboard & Task List -->
+        <section class="lg:col-span-7 space-y-4">
+            <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 flex flex-col min-h-[500px]">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-list-check text-indigo-600 mr-2"></i> 나의 수행평가 대시보드
+                        </h2>
+                        <span id="taskCountBadge" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">0개</span>
+                    </div>
+
+                    <div class="flex items-center space-x-2 text-xs">
+                        <select id="sortFilter" onchange="renderTasks()" class="border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 font-medium text-slate-600 focus:outline-none">
+                            <option value="dday">마감임박순</option>
+                            <option value="created">최신등록순</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="flex-1 flex flex-col items-center justify-center py-12 text-center">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center text-2xl mb-3">
+                        <i class="fa-regular fa-folder-open"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-600 mb-1">등록된 수행평가가 없습니다.</h3>
+                    <p class="text-xs text-slate-400 max-w-xs">왼쪽 양식을 작성하여 첫 번째 수행평가 일정과 AI 로드맵을 만들어보세요!</p>
+                </div>
+
+                <!-- Task List Container -->
+                <div id="taskList" class="space-y-4 hidden"></div>
+            </div>
+        </section>
+    </main>
+
+    <div id="apiKeyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl border border-slate-100 transform transition-transform scale-95" id="apiKeyModalCard">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-slate-800 text-base flex items-center">
+                    <i class="fa-solid fa-key text-amber-500 mr-2"></i> Gemini API Key 설정
+                </h3>
+                <button onclick="toggleApiKeyModal()" class="text-slate-400 hover:text-slate-600 text-sm">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                Google AI Studio에서 무료로 발급받은 API Key를 입력하세요. 입력된 키는 외부 서버로 전송되지 않고 본인의 브라우저(LocalStorage)에 안전하게 저장됩니다.
+            </p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs text-indigo-600 hover:text-indigo-700 font-semibold space-x-1">
+                    <span>Google AI Studio에서 키 발급받기</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+            </div>
+
+            <div class="flex items-center justify-end space-x-2 mt-6 pt-3 border-t border-slate-100">
+                <button onclick="toggleApiKeyModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition">취소</button>
+                <button onclick="saveApiKey()" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY_TASKS = 'ai_assessment_tasks_v1';
+        const STORAGE_KEY_API = 'gemini_api_key_v1';
+
+        let tasks = [];
+        let apiKey = '';
+
+        // DOM Load Initializer
+        document.addEventListener('DOMContentLoaded', () => {
+            // Today min date setup for date picker
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('deadline').min = todayStr;
+            document.getElementById('deadline').value = todayStr;
+
+            loadStoredData();
+            renderTasks();
+            updateApiKeyUI();
+        });
+
+        function loadStoredData() {
+            try {
+                const savedTasks = localStorage.getItem(STORAGE_KEY_TASKS);
+                if (savedTasks) tasks = JSON.parse(savedTasks);
+            } catch (e) {
+                console.error("Failed to load tasks from localStorage:", e);
+                tasks = [];
+            }
+
+            apiKey = localStorage.getItem(STORAGE_KEY_API) || '';
+        }
+
+        function saveTasksToStorage() {
+            localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+        }
+
+        function toggleApiKeyModal() {
+            const modal = document.getElementById('apiKeyModal');
+            const card = document.getElementById('apiKeyModalCard');
+            const isHidden = modal.classList.contains('opacity-0');
+
+            if (isHidden) {
+                document.getElementById('apiKeyInput').value = apiKey;
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            } else {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                card.classList.remove('scale-100');
+                card.classList.add('scale-95');
+            }
+        }
+
+        function saveApiKey() {
+            const inputVal = document.getElementById('apiKeyInput').value.trim();
+            apiKey = inputVal;
+            localStorage.setItem(STORAGE_KEY_API, apiKey);
+            updateApiKeyUI();
+            toggleApiKeyModal();
+        }
+
+        function updateApiKeyUI() {
+            const alertBox = document.getElementById('apiKeyAlert');
+            const btnText = document.getElementById('apiKeyBtnText');
+
+            if (apiKey) {
+                alertBox.classList.add('hidden');
+                btnText.textContent = 'API 키 등록됨';
+                btnText.classList.add('text-indigo-600');
+            } else {
+                alertBox.classList.remove('hidden');
+                btnText.textContent = 'API 키 설정';
+                btnText.classList.remove('text-indigo-600');
+            }
+        }
+
+        function calculateDDay(deadlineStr) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const target = new Date(deadlineStr);
+            target.setHours(0, 0, 0, 0);
+
+            const diffTime = target - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) return { text: 'D-Day', badgeClass: 'bg-red-500 text-white animate-pulse' };
+            if (diffDays < 0) return { text: `D+${Math.abs(diffDays)}`, badgeClass: 'bg-slate-400 text-white' };
+            if (diffDays <= 3) return { text: `D-${diffDays}`, badgeClass: 'bg-red-100 text-red-600 font-bold border border-red-200' };
+            if (diffDays <= 7) return { text: `D-${diffDays}`, badgeClass: 'bg-amber-100 text-amber-700 font-bold border border-amber-200' };
+            return { text: `D-${diffDays}`, badgeClass: 'bg-indigo-50 text-indigo-600 font-bold border border-indigo-100' };
+        }
+
+        async function generateAiPlan(subject, taskType, deadline, details) {
+            if (!apiKey) {
+                return "⚠️ API 키가 설정되지 않았습니다. [API 키 설정] 메뉴에서 Gemini API 키를 입력하면 AI 맞춤 플랜이 생성됩니다.";
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            const systemPrompt = "당신은 한국 고등학생을 위한 정교한 학습 컨설턴트 및 수행평가 전문 가이드입니다.";
+            const userPrompt = `
+수행평가 정보:
+- 과목명: ${subject}
+- 평가 유형: ${taskType}
+- 마감일: ${deadline} (오늘 날짜: ${todayStr})
+- 세부 내용 및 주제: ${details || '지정 없음'}
+
+요청 사항:
+오늘부터 마감일까지 학생이 고득점을 받을 수 있도록 'D-Day 기준 단계별 준비 일정'과 '핵심 팁'을 작성해주세요.
+
+다음의 Markdown 형식을 정확하게 지켜 답변해주세요:
+
+### 📌 D-Day 단계별 준비 일정
+- **[D-Minus/기한] 단계명**: 할 일 구체 설명 및 핵심 포인트
+
+### 💡 고득점 핵심 노하우
+1. **팁 1**: 내용
+2. **팁 2**: 내용
+3. **팁 3**: 내용
+`;
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || `HTTP 에러 ${response.status}`);
+                }
+
+                const result = await response.json();
+                const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                return aiText || "AI 로드맵을 생성하지 못했습니다. 다시 시도해 주세요.";
+            } catch (err) {
+                console.error("Gemini API Error:", err);
+                return `❌ AI 로드맵 생성 실패: ${err.message}\n(API 키가 유효한지 확인해주세요.)`;
+            }
+        }
+
+        async function handleTaskSubmit(e) {
+            e.preventDefault();
+
+            const subject = document.getElementById('subject').value.trim();
+            const taskType = document.getElementById('taskType').value;
+            const deadline = document.getElementById('deadline').value;
+            const details = document.getElementById('details').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!subject || !deadline) return;
+
+            // Loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>AI가 로드맵 짜는 중...</span>`;
+
+            const aiPlan = await generateAiPlan(subject, taskType, deadline, details);
+
+            const newTask = {
+                id: Date.now().toString(),
+                subject,
+                taskType,
+                deadline,
+                details,
+                aiPlan,
+                createdAt: new Date().toISOString()
+            };
+
+            tasks.unshift(newTask);
+            saveTasksToStorage();
+            renderTasks();
+
+            // Reset Form & Button
+            document.getElementById('subject').value = '';
+            document.getElementById('details').value = '';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i><span>AI 로드맵 생성 및 저장</span>`;
+        }
+
+        function deleteTask(id) {
+            if (confirm("이 수행평가 일정을 삭제하시겠습니까?")) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveTasksToStorage();
+                renderTasks();
+            }
+        }
+
+        function formatMarkdown(text) {
+            if (!text) return '';
+            
+            // Simple markdown parser for headers and bold text
+            let html = text
+                .replace(/^### (.*$)/gim, '<h4 class="font-bold text-slate-800 text-sm mt-3 mb-1.5 flex items-center">$1</h4>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-indigo-900 bg-indigo-50/70 px-1 rounded">$1</strong>')
+                .replace(/^- (.*$)/gim, '<li class="ml-4 list-disc text-slate-700 my-1 text-xs leading-relaxed">$1</li>')
+                .replace(/^\d+\. (.*$)/gim, '<li class="ml-4 list-decimal text-slate-700 my-1 text-xs leading-relaxed">$1</li>');
+
+            return html.replace(/\n\n/g, '<br>');
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById('taskList');
+            const emptyState = document.getElementById('emptyState');
+            const taskCountBadge = document.getElementById('taskCountBadge');
+            const sortFilter = document.getElementById('sortFilter').value;
+
+            taskCountBadge.textContent = `${tasks.length}개`;
+
+            if (tasks.length === 0) {
+                emptyState.classList.remove('hidden');
+                taskList.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            taskList.classList.remove('hidden');
+
+            // Sorting logic
+            let sortedTasks = [...tasks];
+            if (sortFilter === 'dday') {
+                sortedTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+            } else {
+                sortedTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
+            taskList.innerHTML = sortedTasks.map(task => {
+                const ddayInfo = calculateDDay(task.deadline);
+                const formattedPlan = formatMarkdown(task.aiPlan);
+
+                return `
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 transition-all hover:border-slate-300 hover:shadow-sm">
+                        <!-- Card Header -->
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="text-xs px-2 py-0.5 rounded ${ddayInfo.badgeClass}">
+                                        ${ddayInfo.text}
+                                    </span>
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                                        ${task.taskType}
+                                    </span>
+                                </div>
+                                <h3 class="font-bold text-slate-900 text-base">${task.subject}</h3>
+                            </div>
+
+                            <button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-red-500 p-1.5 transition text-xs" title="삭제">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+
+                        <!-- Details -->
+                        ${task.details ? `<p class="text-xs text-slate-600 my-2 bg-white p-2.5 rounded-lg border border-slate-100">📌 ${task.details}</p>` : ''}
+                        
+                        <div class="text-xs text-slate-400 mb-3">
+                            <i class="fa-regular fa-clock mr-1"></i> 마감일: ${task.deadline}
+                        </div>
+
+                        <!-- AI Roadmap Accordion/Box -->
+                        <div class="bg-white rounded-xl p-3.5 border border-indigo-100/80 shadow-2xs space-y-2">
+                            <div class="flex items-center text-xs font-bold text-indigo-700 pb-2 border-b border-indigo-50">
+                                <i class="fa-solid fa-robot mr-1.5 text-indigo-500"></i> AI 맞춤 준비 플랜
+                            </div>
+                            <div class="prose prose-xs max-w-none text-slate-700 leading-relaxed overflow-x-auto">
+                                ${formattedPlan}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
